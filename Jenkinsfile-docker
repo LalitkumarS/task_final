@@ -1,72 +1,52 @@
-pipeline{
+pipeline {
     agent any
-    tools{
-        jdk 'jdk17'
-        nodejs 'node16'
-    }
+
     environment {
-        SCANNER_HOME=tool 'sonar-scanner'
+        IMAGE_NAME = "lalitkumars/final_task"
+        CONTAINER_NAME = "devops-react-app"
+        PORT = "5003"
     }
+
     stages {
-        stage('clean workspace'){
-            steps{
-                cleanWs()
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/LalitkumarS/task_final.git'
             }
         }
-        stage('Checkout from Git'){
-            steps{
-                git branch: 'main', url: 'https://github.com/akaspatranobis/hotstar-clone-app-ci-cd-k8.git'
-            }
-        }
-        stage("Sonarqube Analysis "){
-            steps{
-                withSonarQubeEnv('sonar-server') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Hotstar \
-                    -Dsonar.projectKey=Hotstar'''
-                }
-            }
-        }
-        stage("quality gate"){
-           steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
-                }
-            }
-        }
+
         stage('Install Dependencies') {
             steps {
-                sh "npm install"
-            }
-        }
-        
-        stage('TRIVY FS SCAN') {
-            steps {
-                sh "trivy fs . > trivyfs.txt"
-            }
-        }
-        stage("Docker Build & Push"){
-            steps{
-                script{
-                   withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){
-                       sh "docker build -t hotstar ."
-                       sh "docker tag hotstar apatranobis59/hotstar:latest "
-                       sh "docker push apatranobis59/hotstar:latest"
-                    }
+                script {
+                    sh 'npm install'
                 }
             }
         }
-        stage("TRIVY"){
-            steps{
-                sh "trivy image apatranobis59/hotstar:latest > trivyimage.txt" 
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh 'docker build -t $IMAGE_NAME .'
+                }
             }
         }
-		
-		stage("deploy_docker"){
-				steps{
-					sh "docker run -d --name hotstar -p 3001:3000 apatranobis59/hotstar:latest"
-				}
-		}
-        
-        
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    sh 'docker stop $CONTAINER_NAME || true'
+                    sh 'docker rm $CONTAINER_NAME || true'
+                    sh 'docker run -d --name $CONTAINER_NAME -p $PORT:80 $IMAGE_NAME'
+                }
+            }
+        }
     }
-} 
+
+    post {
+        success {
+            echo '🎉 Deployment successful! Visit http://localhost:5003'
+        }
+        failure {
+            echo '❌ Deployment failed. Check logs.'
+        }
+    }
+}
