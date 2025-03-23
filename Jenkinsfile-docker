@@ -10,13 +10,14 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/LalitkumarS/task_final.git'
+                git branch: 'main', url: 'https://github.com/LalitkumarS/task_final.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
                 script {
+                    sh 'node --version'
                     sh 'npm install'
                 }
             }
@@ -25,6 +26,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
+                    sh 'docker --version'
                     sh 'docker build -t $IMAGE_NAME .'
                 }
             }
@@ -33,9 +35,12 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sh 'docker stop $CONTAINER_NAME || true'
-                    sh 'docker rm $CONTAINER_NAME || true'
-                    sh 'docker run -d --name $CONTAINER_NAME -p $PORT:80 $IMAGE_NAME'
+                    sh '''
+                        docker stop $CONTAINER_NAME || true
+                        docker rm $CONTAINER_NAME || true
+                        lsof -i:$PORT || true
+                        docker run -d --name $CONTAINER_NAME -p $PORT:80 $IMAGE_NAME
+                    '''
                 }
             }
         }
