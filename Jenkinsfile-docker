@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "lalitkumars/final_task"
         CONTAINER_NAME = "devops-react-app"
-        PORT = "5003"
+        PORT = "6420"
     }
 
     stages {
@@ -48,7 +48,7 @@ pipeline {
 
     post {
         success {
-            echo '🎉 Deployment successful! Visit http://localhost:5003'
+            echo '🎉 Deployment successful! Visit http://localhost:6420'
         }
         failure {
             echo '❌ Deployment failed. Check logs.'
